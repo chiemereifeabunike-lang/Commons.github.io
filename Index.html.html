@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Commons</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF3EF;--card:#FFF;--ink:#14201A;--mute:#5E6F66;--line:#D8E2DB;--acc:#1F7A5C;--accink:#FFF;--soft:#DCEEE5;--warm:#C9791A;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1713;--card:#17221C;--ink:#E6F0EA;--mute:#92A89C;--line:#25362D;--acc:#5CC79E;--accink:#0F1713;--soft:#1D3329;--warm:#F2B544}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif}
+#app{max-width:560px;margin:0 auto;padding:16px 16px 100px}
+h1{font:700 30px 'Fraunces',Georgia,serif;margin:0}
+h2{font-size:17px;margin:0 0 8px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.av{width:36px;height:36px;border-radius:50%;color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.sm{width:30px;height:30px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.meta{color:var(--mute);font-size:13px}
+.row{display:flex;gap:10px;align-items:center}
+.post p{margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.post img,.prev img{width:100%;border-radius:12px;display:block;margin:8px 0}
+.tag{background:var(--soft);color:var(--acc);border-radius:99px;padding:2px 10px;font-size:12px;font-weight:600}
+button,select,textarea,input,.btn{font:inherit;color:inherit}
+button,.btn{cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:8px 14px;display:inline-block}
+button.pri{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+button.lk{border:0;background:none;padding:4px 14px 4px 0;color:var(--mute)}
+button.lk.on{color:var(--warm);font-weight:700}
+textarea,input,select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px;margin-bottom:8px}
+.row input,.row select{margin:0}
+textarea{resize:vertical;min-height:70px}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
+nav div{max-width:560px;margin:0 auto;display:flex;gap:6px}
+nav button{flex:1;border:0;background:none;color:var(--mute);font-weight:600;padding:8px 4px}
+nav button.on{color:var(--acc);background:var(--soft)}
+.done{text-align:center;color:var(--mute);padding:24px 8px}
+.done b{display:block;color:var(--ink);font-size:17px;margin-bottom:4px}
+ul.k{padding-left:18px;margin:8px 0;color:var(--mute)}
+.cm{border-top:1px solid var(--line);margin-top:8px;padding-top:8px}
+.cm div{margin:6px 0;overflow-wrap:anywhere}
+.bub{max-width:80%;padding:8px 12px;border-radius:16px;margin:6px 0;overflow-wrap:anywhere;background:var(--soft)}
+.bub.me{margin-left:auto;background:var(--acc);color:var(--accink)}
+.link{cursor:pointer}
+.err{color:#C0392B}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+var db=supabase.createClient('https://crszlmqnafsazfuokore.supabase.co','sb_publishable_I7s9l_Irus3FMGWx3azPew_fjfoDSmj');
+var U=null,D={groups:[],mine:[],posts:[],people:[],dms:[]},tab='feed',TH=null,OPEN={},PIMG=null,DRAFT='',MODE='in',MSG='',BUSY=false;
+var TITLES={feed:'Feed',groups:'Groups',msgs:'Messages',me:'You'};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function ago(t){var m=Math.round((Date.now()-new Date(t))/6e4);if(m<1)return'just now';if(m<60)return m+' min ago';var h=Math.round(m/60);if(h<24)return h+' h ago';return Math.round(h/24)+' d ago'}
+function pname(id){var p=D.people.filter(function(x){return x.id===id})[0];return p?p.name:'Someone'}
+function gname(id){var g=D.groups.filter(function(x){return x.id===id})[0];return g?g.name:''}
+function av(n,c){var h=0;for(var i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))%360;return'<div class="av '+(c||'')+'" style="background:hsl('+h+' 42% 36%)">'+esc(n.charAt(0).toUpperCase())+'</div>'}
+function val(id){var e=document.getElementById(id);return e?e.value.trim():''}
+function need(id){var e=document.getElementById(id);if(e)e.focus()}
+function okimg(s){return /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(s||'')}
+async function loadAll(){
+ var r=await Promise.all([
+  db.from('groups').select('*').order('created_at'),
+  db.from('members').select('group_id').eq('user_id',U.id),
+  db.from('posts').select('id,group_id,author_id,body,image,created_at,comments(id,author_id,body,created_at),likes(user_id)').order('created_at',{ascending:false}).limit(50),
+  db.from('profiles').select('id,name'),
+  db.from('messages').select('*').order('created_at')]);
+ var bad=r.filter(function(x){return x.error})[0];
+ MSG=bad?'Could not load data: '+bad.error.message:'';
+ D.groups=r[0].data||[];D.mine=(r[1].data||[]).map(function(x){return x.group_id});D.posts=r[2].data||[];D.people=r[3].data||[];D.dms=r[4].data||[];
+ render();
+}
+function render(){
+ var t=document.getElementById('tx');if(t)DRAFT=t.value;
+ var a=document.getElementById('app');
+ if(!U){
+  a.innerHTML='<div style="padding:40px 0"><h1>Commons</h1><p class="meta">A calm place for the groups you belong to. No ads, no algorithm, newest first.</p><div class="card"><h2>'+(MODE==='in'?'Sign in':'Create your account')+'</h2>'+(MODE==='up'?'<input id="nm" maxlength="24" placeholder="Display name" autocomplete="name">':'')+'<input id="em" type="email" placeholder="Email" autocomplete="email"><input id="pw" type="password" placeholder="Password (at least 6 characters)" autocomplete="'+(MODE==='in'?'current-password':'new-password')+'">'+(MSG?'<p class="meta err" role="alert">'+esc(MSG)+'</p>':'')+'<div class="row"><button class="pri" data-a="auth">'+(MODE==='in'?'Sign in':'Join Commons')+'</button><button data-a="mode">'+(MODE==='in'?'Create account':'I have an account')+'</button></div></div></div>';return}
+ var me=pname(U.id),h='<div class="top"><h1>'+(tab==='msgs'&&TH?esc(pname(TH)):TITLES[tab])+'</h1>'+av(me)+'</div>';
+ if(MSG)h+='<div class="card meta err" role="alert">'+esc(MSG)+'</div>';
+ if(tab==='feed'){
+  var mine=D.groups.filter(function(g){return D.mine.indexOf(g.id)>-1});
+  if(mine.length){
+   h+='<div class="card"><textarea id="tx" maxlength="500" placeholder="Share something with a group">'+esc(DRAFT)+'</textarea>';
+   if(PIMG)h+='<div class="prev"><img src="'+PIMG+'" alt="Photo to post"><button data-a="rmimg">Remove photo</button></div>';
+   h+='<div class="row"><select id="gs" aria-label="Post to group">'+mine.map(function(g){return'<option value="'+g.id+'">'+esc(g.name)+'</option>'}).join('')+'</select><label class="btn" style="white-space:nowrap">Photo<input type="file" id="ph" accept="image/*" hidden></label><button class="pri" data-a="post">Post</button></div></div>';
+  }
+  if(!D.posts.length)h+='<div class="done"><b>Nothing here yet</b>Join a group in the Groups tab, then post the first update.</div>';
+  D.posts.forEach(function(p){
+   var liked=p.likes.some(function(l){return l.user_id===U.id}),nm=pname(p.author_id);
+   h+='<div class="card post"><div class="row">'+av(nm,'sm')+'<div><b>'+esc(nm)+'</b> <span class="tag">'+esc(gname(p.group_id))+'</span><div class="meta">'+ago(p.created_at)+'</div></div></div>'+(p.body?'<p>'+esc(p.body)+'</p>':'')+(okimg(p.image)?'<img src="'+p.image+'" alt="Photo from '+esc(nm)+'">':'')+
+   '<button class="lk'+(liked?' on':'')+'" data-a="like" data-id="'+p.id+'" aria-pressed="'+liked+'">'+(liked?'Liked':'Like')+' &middot; '+p.likes.length+'</button><button class="lk" data-a="cmt" data-id="'+p.id+'">Comments &middot; '+p.comments.length+'</button>';
+   if(OPEN[p.id]){h+='<div class="cm">'+p.comments.slice().sort(function(a,b){return new Date(a.created_at)-new Date(b.created_at)}).map(function(c){return'<div><b>'+esc(pname(c.author_id))+'</b> '+esc(c.body)+' <span class="meta">'+ago(c.created_at)+'</span></div>'}).join('')+'<div class="row" style="margin-top:8px"><input id="c_'+p.id+'" maxlength="200" placeholder="Write a comment"><button class="pri" data-a="addc" data-id="'+p.id+'">Send</button></div></div>'}
+   h+='</div>'});
+  if(D.posts.length)h+='<div class="done"><b>You\u2019re all caught up</b>That is everything from your groups. Come back later.</div>';
+ }
+ if(tab==='groups'){
+  D.groups.forEach(function(g){var j=D.mine.indexOf(g.id)>-1;h+='<div class="card row" style="justify-content:space-between"><div><b>'+esc(g.name)+'</b><div class="meta">'+esc(g.description)+'</div></div><button class="'+(j?'':'pri')+'" data-a="join" data-id="'+g.id+'">'+(j?'Leave':'Join')+'</button></div>'});
+  h+='<div class="card"><h2>Start a group</h2><input id="gn" maxlength="30" placeholder="Group name"><input id="gd" maxlength="80" placeholder="What is it about? (optional)"><button class="pri" data-a="newg">Create group</button></div>';
+ }
+ if(tab==='msgs'){
+  if(!TH){
+   var others=D.people.filter(function(p){return p.id!==U.id});
+   if(!others.length)h+='<div class="done"><b>No one else is here yet</b>Invite a friend to create an account.</div>';
+   others.forEach(function(p){var th=D.dms.filter(function(m){return m.sender_id===p.id||m.recipient_id===p.id}),l=th[th.length-1];h+='<div class="card row link" data-a="open" data-id="'+p.id+'">'+av(p.name)+'<div><b>'+esc(p.name)+'</b><div class="meta">'+(l?esc((l.sender_id===U.id?'You: ':'')+l.body):'Start a conversation')+'</div></div></div>'});
+  }else{
+   h+='<button data-a="back" style="margin-bottom:8px">Back</button>';
+   D.dms.filter(function(m){return m.sender_id===TH||m.recipient_id===TH}).forEach(function(m){h+='<div class="bub'+(m.sender_id===U.id?' me':'')+'">'+esc(m.body)+'</div>'});
+   h+='<div class="row" style="margin-top:12px"><input id="dm" maxlength="300" placeholder="Message '+esc(pname(TH))+'"><button class="pri" data-a="send">Send</button></div>';
+  }
+ }
+ if(tab==='me'){
+  h+='<div class="card"><h2>'+esc(me)+'</h2><div class="meta">'+esc(U.email)+'</div></div><div class="card"><h2>How Commons treats you</h2><ul class="k"><li>No ads and no tracking.</li><li>Feed is newest first. No ranking algorithm.</li><li>The feed ends, so there is nothing to scroll forever.</li><li>You only see posts from groups you joined.</li></ul></div><div class="row"><button data-a="refresh">Refresh</button><button data-a="out">Sign out</button></div>';
+ }
+ h+='<nav><div>'+['feed','groups','msgs','me'].map(function(k){return'<button data-a="tab" data-id="'+k+'" class="'+(tab===k?'on':'')+'">'+TITLES[k]+'</button>'}).join('')+'</div></nav>';
+ a.innerHTML=h;
+}
+function fail(r){if(r&&r.error){MSG=r.error.message;return true}MSG='';return false}
+document.addEventListener('click',async function(e){
+ var b=e.target.closest('[data-a]');if(!b||BUSY)return;var a=b.dataset.a,id=b.dataset.id;
+ BUSY=true;
+ try{
+ if(a==='mode'){MODE=MODE==='in'?'up':'in';MSG=''}
+ else if(a==='auth'){
+  var em=val('em'),pw=val('pw'),nm=val('nm');
+  if(!em||!pw||(MODE==='up'&&!nm)){MSG='Please fill in every field.';render();BUSY=false;return}
+  var r=MODE==='in'?await db.auth.signInWithPassword({email:em,password:pw}):await db.auth.signUp({email:em,password:pw,options:{data:{name:nm}}});
+  if(fail(r)){render();BUSY=false;return}
+  if(!r.data.session){MSG='Check your email to confirm your account, then sign in.';MODE='in';render();BUSY=false;return}
+  BUSY=false;return;
+ }
+ else if(!U){BUSY=false;return}
+ else if(a==='tab'){tab=id;TH=null;MSG=''}
+ else if(a==='post'){var t=val('tx');if(!t&&!PIMG){need('tx');BUSY=false;return}
+  if(fail(await db.from('posts').insert({group_id:val('gs'),author_id:U.id,body:t,image:PIMG}))){render();BUSY=false;return}PIMG=null;DRAFT=''}
+ else if(a==='rmimg'){PIMG=null;render();BUSY=false;return}
+ else if(a==='like'){var p=D.posts.filter(function(x){return x.id===id})[0],lk=p.likes.some(function(l){return l.user_id===U.id});
+  fail(lk?await db.from('likes').delete().eq('post_id',id).eq('user_id',U.id):await db.from('likes').insert({post_id:id,user_id:U.id}))}
+ else if(a==='cmt'){OPEN[id]=!OPEN[id];render();BUSY=false;return}
+ else if(a==='addc'){var c=val('c_'+id);if(!c){need('c_'+id);BUSY=false;return}fail(await db.from('comments').insert({post_id:id,author_id:U.id,body:c}))}
+ else if(a==='join'){fail(D.mine.indexOf(id)>-1?await db.from('members').delete().eq('group_id',id).eq('user_id',U.id):await db.from('members').insert({group_id:id,user_id:U.id}))}
+ else if(a==='newg'){var n=val('gn');if(!n){need('gn');BUSY=false;return}
+  var g=await db.from('groups').insert({name:n,description:val('gd'),created_by:U.id}).select().single();
+  if(!fail(g))fail(await db.from('members').insert({group_id:g.data.id,user_id:U.id}))}
+ else if(a==='open'){TH=id}
+ else if(a==='back'){TH=null}
+ else if(a==='send'){var m=val('dm');if(!m){need('dm');BUSY=false;return}fail(await db.from('messages').insert({sender_id:U.id,recipient_id:TH,body:m}))}
+ else if(a==='out'){await db.auth.signOut();BUSY=false;return}
+ await loadAll();
+ }catch(x){MSG='Something went wrong: '+x.message;render()}
+ BUSY=false;
+});
+document.addEventListener('change',function(e){
+ if(e.target.id!=='ph'||!e.target.files[0])return;
+ var r=new FileReader();
+ r.onload=function(){var i=new Image();i.onload=function(){var s=Math.min(1,720/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.round(i.width*s);c.height=Math.round(i.height*s);c.getContext('2d').drawImage(i,0,0,c.width,c.height);PIMG=c.toDataURL('image/jpeg',.65);render()};i.src=r.result};
+ r.readAsDataURL(e.target.files[0]);
+});
+setInterval(function(){var f=document.activeElement;if(U&&!BUSY&&!(f&&/INPUT|TEXTAREA|SELECT/.test(f.tagName)))loadAll()},20000);
+db.auth.onAuthStateChange(function(ev,s){var nu=s?s.user:null;if((nu&&nu.id)!==(U&&U.id)){U=nu;MSG='';if(U)loadAll();else render()}});
+db.auth.getSession().then(function(r){if(!U){U=r.data.session?r.data.session.user:null;if(U)loadAll();else render()}});
+</script>
+</body>
+</html>
